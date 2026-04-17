@@ -1,2 +1,2 @@
 # BeanTheAlien-Server
-The server for BeanTheAlien.github.io
+The server for BeanTheAlien.github.io.
