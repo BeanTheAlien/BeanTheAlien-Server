@@ -58,6 +58,7 @@ app.post("/verify", async (req, res) => {
 app.post("/verifytk", async (req, res) => {
     res.send({ r: verify(req.body.token) });
 });
+app.get("/wakeup");
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
