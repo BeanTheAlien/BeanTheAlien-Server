@@ -4,7 +4,8 @@
     "module": "nodenext",
     "lib": ["es2022", "dom"],
     "strict": true,
-    "types": ["node"]
+    "types": ["node"],
+    "skipLibCheck": true
   },
   "exclude": ["**/node_modules"]
 }
