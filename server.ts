@@ -45,7 +45,7 @@ app.post("/signup", async (req, res) => {
     const tk = sign(genToken());
     const { error } = await users.insert({ username, password: hash });
     if(error) return res.status(500).json({ success: false, message: error.message });
-    res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true });
+    res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true });
     res.status(201).json({ success: true, message: "User created" });
 });
 app.post("/signin", async (req, res) => {
@@ -54,7 +54,7 @@ app.post("/signin", async (req, res) => {
     if(!u) return res.status(400).json({ success: false, message: "No user with this username exists" });
     if(!(await bcrypt.compare(password, u.password))) return res.status(400).json({ success: false, message: "Password does not match" });
     const tk = sign(genToken());
-    res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true });
+    res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true });
     res.json({ success: true, message: "Logged in successfully" });
 });
 app.post("/verify", async (req, res) => {
