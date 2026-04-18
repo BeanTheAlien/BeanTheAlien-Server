@@ -6,6 +6,7 @@ import express from "express";
 import * as jwt from "jsonwebtoken";
 import { config } from "dotenv";
 import * as crypto from "crypto";
+import * as nodemailer from "nodemailer";
 config();
 
 const app = express();
@@ -21,6 +22,13 @@ app.use(express.json());
 const client = supabase.createClient(process.env.url as string, process.env.key as string);
 const users = client.from("users");
 const secret = "123";
+const transport = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: "ben.allen.goldstein@gmail.com",
+        pass: process.env.mail
+    }
+});
 
 function genToken() {
     return crypto.randomBytes(16).toString("hex");
@@ -37,13 +45,16 @@ async function fd(username: string) {
 function verify(tk: string) {
     return jwt.verify(tk, secret);
 }
+function sendEmail(from: string, to: string, subject: string, html: string) {
+    transport.sendMail({ from, to, subject, html });
+}
 
 app.post("/signup", async (req, res) => {
-    const { username, password } = req.body;
+    const { username, email, password, promotions } = req.body;
     if(await fd(username)) return res.status(400).json({ success: false, message: "A user with this username already exists" });
     const hash = await bcrypt.hash(password, 10);
     const tk = sign(genToken());
-    const { error } = await users.insert({ username, password: hash });
+    const { error } = await users.insert({ username, email, password: hash, promotions });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true });
     res.status(201).json({ success: true, message: "User created" });
@@ -68,6 +79,10 @@ app.get("/wakeup");
 app.post("/user", async (req, res) => {
     const { username } = req.body;
     res.send({ u: await fd(username) });
+});
+app.post("/sendemail", async (req, res) => {
+    const { from, to, subject, html } = req.body;
+    sendEmail(from, to, subject, html);
 });
 
 const port = process.env.PORT || 3001;
