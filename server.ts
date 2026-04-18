@@ -58,7 +58,8 @@ app.post("/signin", async (req, res) => {
     res.json({ success: true, message: "Logged in successfully" });
 });
 app.post("/verify", async (req, res) => {
-    res.send({ r: verify(req.cookies.token) });
+    const t = req.cookies.token;
+    res.send({ r: t && verify(t) });
 });
 app.post("/verifytk", async (req, res) => {
     res.send({ r: verify(req.body.token) });
