@@ -64,6 +64,10 @@ app.post("/verifytk", async (req, res) => {
     res.send({ r: verify(req.body.token) });
 });
 app.get("/wakeup");
+app.post("/user", async (req, res) => {
+    const { username } = req.body;
+    res.send({ u: await fd(username) });
+});
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
