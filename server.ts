@@ -76,6 +76,9 @@ function getUsername(req: Request) {
 function cookies(res: Response, token: string) {
     res.cookie("token", token, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: isProd ? "none" : "lax", secure: isProd });
 }
+async function admin(req: Request) {
+    return (await fd(getUsername(req)))?.role == "admin";
+}
 
 app.post("/signup", async (req, res) => {
     const { username, email, password, promotions } = req.body;
@@ -146,6 +149,20 @@ app.post("/setpfp", upload.single("file"), async (req, res) => {
 });
 app.post("/cookies", async (req, res) => {
     res.send({ c: decode(req) });
+});
+app.post("/admin/changerole", async (req, res) => {
+    const { role, username } = req.body;
+    if(!(await admin(req))) return res.status(403).json({ success: false });
+    const { error } = await users.update("role", role).eq("username", username);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
+});
+app.post("/admin/delete", async (req, res) => {
+    const { username } = req.body;
+    if(!(await admin(req))) return res.status(403).json({ success: false });
+    const { error } = await users.delete().eq("username", username);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
 });
 
 const port = process.env.PORT || 3001;
