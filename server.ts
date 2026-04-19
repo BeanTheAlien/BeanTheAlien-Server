@@ -22,7 +22,7 @@ app.use(express.json());
 
 const client = supabase.createClient(process.env.url as string, process.env.key as string);
 const users = client.from("users");
-const pfps = client.from("pfp");
+const pfps = client.from("pfps");
 const secret = "123";
 const transport = nodemailer.createTransport({
     service: "gmail",
