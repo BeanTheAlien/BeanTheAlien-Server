@@ -98,6 +98,7 @@ app.post("/verifytk", async (req, res) => {
 });
 app.get("/wakeup");
 app.post("/user", async (req, res) => {
+    console.log(req.cookies, "\n", req.cookies.user);
     res.send({ u: await fd(getUsername(req)) });
 });
 app.post("/sendemail", async (req, res) => {
