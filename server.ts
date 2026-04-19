@@ -114,7 +114,7 @@ app.post("/setpfp", async (req, res) => {
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
-app.get("/cookies", async (req, res) => {
+app.post("/cookies", async (req, res) => {
     res.send({ c: [getToken(req), getUsername(req)] });
 });
 
