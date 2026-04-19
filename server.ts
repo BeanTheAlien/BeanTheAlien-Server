@@ -22,6 +22,7 @@ app.use(express.json());
 
 const client = supabase.createClient(process.env.url as string, process.env.key as string);
 const users = client.from("users");
+const pfps = client.from("pfp");
 const secret = "123";
 const transport = nodemailer.createTransport({
     service: "gmail",
@@ -40,8 +41,14 @@ function sign(hex: string) {
 async function fltr(username: string) {
     return (await users.select().filter("username", "eq", username)).data;
 }
+async function fltrPfps(username: string) {
+    return (await pfps.select().filter("username", "eq", username)).data;
+}
 async function fd(username: string) {
     return (await fltr(username))?.[0];
+}
+async function fdPfps(username: string) {
+    return (await fltrPfps(username))?.[0];
 }
 function verify(tk: string) {
     return jwt.verify(tk, secret);
@@ -94,6 +101,16 @@ app.post("/user", async (req, res) => {
 app.post("/sendemail", async (req, res) => {
     const { from, to, subject, html } = req.body;
     sendEmail(from, to, subject, html);
+});
+app.post("/getpfp", async (req, res) => {
+    res.send({ pfp: await fdPfps(getUsername(req)) });
+});
+app.post("/setpfp", async (req, res) => {
+    const { bytes } = req.body;
+    const u = getUsername(req);
+    const { error } = await pfps.upsert({ username: u, pfp: bytes }).eq("username", u);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
 });
 
 const port = process.env.PORT || 3001;
