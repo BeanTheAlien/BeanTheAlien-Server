@@ -119,7 +119,7 @@ app.post("/getpfp", async (req, res) => {
 app.post("/setpfp", async (req, res) => {
     const { b64 } = req.body;
     const u = getUsername(req);
-    const { error } = await pfps.upsert({ username: u, pfp: b64 }).eq("username", u);
+    const { error } = await pfps.upsert({ username: u, pfp: b64 });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
