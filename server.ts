@@ -117,9 +117,9 @@ app.post("/getpfp", async (req, res) => {
     res.send({ pfp: await fdPfps(getUsername(req)) });
 });
 app.post("/setpfp", async (req, res) => {
-    const { b64 } = req.body;
+    const { url } = req.body;
     const u = getUsername(req);
-    const { error } = await pfps.upsert({ username: u, pfp: b64 });
+    const { error } = await pfps.upsert({ username: u, pfp: url });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
