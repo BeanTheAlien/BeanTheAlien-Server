@@ -37,8 +37,8 @@ console.log(process.env.NODE_ENV);
 function genToken() {
     return crypto.randomBytes(16).toString("hex");
 }
-function sign(hex: string) {
-    return jwt.sign({ tk: hex }, secret, { expiresIn: "3d" });
+function sign(hex: string, unm: string) {
+    return jwt.sign({ tk: hex, unm }, secret, { expiresIn: "3d" });
 }
 async function fltr(username: string) {
     return (await users.select().filter("username", "eq", username)).data;
@@ -58,26 +58,26 @@ function verify(tk: string) {
 function sendEmail(from: string, to: string, subject: string, html: string) {
     transport.sendMail({ from, to, subject, html });
 }
+function decode(req: Request) {
+    return jwt.verify(req.cookies.token, secret) as any;
+}
 function getToken(req: Request) {
-    return req.cookies.token;
+    return decode(req).tk;
 }
 function getUsername(req: Request) {
-    return req.cookies.username;
+    return decode(req).unm;
 }
-function cookies(res: Response, token: string, username: string) {
-    const opts: CookieOptions = { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: isProd ? "none" : "lax", secure: isProd };
-    res.cookie("token", token, opts);
-    res.cookie("username", username, opts);
+function cookies(res: Response, token: string) {
+    res.cookie("token", token, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: isProd ? "none" : "lax", secure: isProd });
 }
 
 app.post("/signup", async (req, res) => {
     const { username, email, password, promotions } = req.body;
     if(await fd(username)) return res.status(400).json({ success: false, message: "A user with this username already exists" });
     const hash = await bcrypt.hash(password, 10);
-    const tk = sign(genToken());
+    const tk = sign(genToken(), username);
     const { error } = await users.insert({ username, email, password: hash, promotions });
     if(error) return res.status(500).json({ success: false, message: error.message });
-    cookies(res, tk, username);
     res.status(201).json({ success: true, message: "User created" });
 });
 app.post("/signin", async (req, res) => {
@@ -85,8 +85,8 @@ app.post("/signin", async (req, res) => {
     const u = await fd(username);
     if(!u) return res.status(400).json({ success: false, message: "No user with this username exists" });
     if(!(await bcrypt.compare(password, u.password))) return res.status(400).json({ success: false, message: "Password does not match" });
-    const tk = sign(genToken());
-    cookies(res, tk, username);
+    const tk = sign(genToken(), username);
+    cookies(res, tk);
     res.json({ success: true, message: "Logged in successfully" });
 });
 app.post("/verify", async (req, res) => {
@@ -98,7 +98,6 @@ app.post("/verifytk", async (req, res) => {
 });
 app.get("/wakeup");
 app.post("/user", async (req, res) => {
-    console.log(req.cookies, "\n", req.cookies.user);
     res.send({ u: await fd(getUsername(req)) });
 });
 app.post("/sendemail", async (req, res) => {
@@ -116,7 +115,7 @@ app.post("/setpfp", async (req, res) => {
     res.json({ success: true });
 });
 app.post("/cookies", async (req, res) => {
-    res.send({ c: [getToken(req), getUsername(req)] });
+    res.send({ c: decode(req) });
 });
 
 const port = process.env.PORT || 3001;
