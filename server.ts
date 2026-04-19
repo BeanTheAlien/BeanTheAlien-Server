@@ -85,6 +85,14 @@ app.post("/signup", async (req, res) => {
     const { error } = await users.insert({ username, email, password: hash, promotions });
     if(error) return res.status(500).json({ success: false, message: error.message });
     cookies(res, tk);
+    sendEmail(`"BeanTheAlien" <beanthealien@beanthealien.github.io>`, email, "Thanks For Signing Up!", `<div>
+        <h1 style="background-color: #144202; border-radius: 5px; padding: 10px;">Thanks for joining BeanTheAlien.github.io!</h1>
+        <p>If you signed up for promotional/update emails, you'll receive them at this email.</p>
+        <p>It's nice to have you here, ${username}.</p>
+        <br>
+        <p>Cheers,</p>
+        <p>BeanTheAlien</p>
+    </div>`);
     res.status(201).json({ success: true, message: "User created" });
 });
 app.post("/signin", async (req, res) => {
