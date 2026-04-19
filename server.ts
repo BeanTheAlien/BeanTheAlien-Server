@@ -114,6 +114,9 @@ app.post("/setpfp", async (req, res) => {
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
+app.get("/cookies", async (req, res) => {
+    res.send({ c: [getToken(req), getUsername(req)] });
+});
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
