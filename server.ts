@@ -8,6 +8,7 @@ import { config } from "dotenv";
 import * as crypto from "crypto";
 import * as nodemailer from "nodemailer";
 import type { Request, Response } from "express";
+import multer from "multer";
 config();
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json());
+const upload = multer();
 
 const client = supabase.createClient(process.env.url as string, process.env.key as string);
 const users = client.from("users");
@@ -116,11 +118,12 @@ app.post("/sendemail", async (req, res) => {
 app.post("/getpfp", async (req, res) => {
     res.send({ pfp: await fdPfps(getUsername(req)) });
 });
-app.post("/setpfp", async (req, res) => {
-    const { file } = req.body;
+app.post("/setpfp", upload.single("file"), async (req, res) => {
+    const file = req.file;
+    if(!file) return res.status(400).json({ success: false, message: "No file provided" });
     const u = getUsername(req);
     const path = `${u}/${crypto.randomUUID()}.png`;
-    const { error } = await client.storage.from("pfps").upload(path, file);
+    const { error } = await client.storage.from("pfps").upload(path, file.buffer, { contentType: "image/webp", upsert: true });
     if(error) return res.status(500).json({ success: false, message: error.message });
     const { data: dataurl } = client.storage.from("pfps").getPublicUrl(path);
     const url = dataurl.publicUrl;
