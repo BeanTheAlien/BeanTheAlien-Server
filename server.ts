@@ -7,6 +7,7 @@ import * as jwt from "jsonwebtoken";
 import { config } from "dotenv";
 import * as crypto from "crypto";
 import * as nodemailer from "nodemailer";
+import type { CookieOptions, Request, Response } from "express";
 config();
 
 const app = express();
@@ -48,6 +49,17 @@ function verify(tk: string) {
 function sendEmail(from: string, to: string, subject: string, html: string) {
     transport.sendMail({ from, to, subject, html });
 }
+function getToken(req: Request) {
+    return req.cookies.token;
+}
+function getUsername(req: Request) {
+    return req.cookies.username;
+}
+function cookies(res: Response, token: string, username: string) {
+    const opts: CookieOptions = { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true };
+    res.cookie("token", token, opts);
+    res.cookie("username", username, opts);
+}
 
 app.post("/signup", async (req, res) => {
     const { username, email, password, promotions } = req.body;
@@ -56,7 +68,7 @@ app.post("/signup", async (req, res) => {
     const tk = sign(genToken());
     const { error } = await users.insert({ username, email, password: hash, promotions });
     if(error) return res.status(500).json({ success: false, message: error.message });
-    res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true });
+    cookies(res, tk, username);
     res.status(201).json({ success: true, message: "User created" });
 });
 app.post("/signin", async (req, res) => {
@@ -65,11 +77,11 @@ app.post("/signin", async (req, res) => {
     if(!u) return res.status(400).json({ success: false, message: "No user with this username exists" });
     if(!(await bcrypt.compare(password, u.password))) return res.status(400).json({ success: false, message: "Password does not match" });
     const tk = sign(genToken());
-    res.cookie("token", tk, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true });
+    cookies(res, tk, username);
     res.json({ success: true, message: "Logged in successfully" });
 });
 app.post("/verify", async (req, res) => {
-    const t = req.cookies.token;
+    const t = getToken(req);
     res.send({ r: t && verify(t) });
 });
 app.post("/verifytk", async (req, res) => {
@@ -77,8 +89,7 @@ app.post("/verifytk", async (req, res) => {
 });
 app.get("/wakeup");
 app.post("/user", async (req, res) => {
-    const { username } = req.body;
-    res.send({ u: await fd(username) });
+    res.send({ u: await fd(getUsername(req)) });
 });
 app.post("/sendemail", async (req, res) => {
     const { from, to, subject, html } = req.body;
