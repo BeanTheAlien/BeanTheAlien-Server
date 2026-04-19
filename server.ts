@@ -117,15 +117,20 @@ app.post("/getpfp", async (req, res) => {
     res.send({ pfp: await fdPfps(getUsername(req)) });
 });
 app.post("/setpfp", async (req, res) => {
-    const { url } = req.body;
+    const { file } = req.body;
     const u = getUsername(req);
+    const path = `${u}/${crypto.randomUUID()}.png`;
+    const { error } = await client.storage.from("pfps").upload(path, file);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    const { data: dataurl } = client.storage.from("pfps").getPublicUrl(path);
+    const url = dataurl.publicUrl;
     if(await fdPfps(u)) {
         const { error } = await pfps.update({ pfp: url }).eq("username", u);
         if(error) return res.status(500).json({ success: false, message: error.message });
         return res.json({ success: true });
     }
-    const { error } = await pfps.insert({ username: u, pfp: url });
-    if(error) return res.status(500).json({ success: false, message: error.message });
+    const { error: e } = await pfps.insert({ username: u, pfp: url });
+    if(e) return res.status(500).json({ success: false, message: e.message });
     res.json({ success: true });
 });
 app.post("/cookies", async (req, res) => {
