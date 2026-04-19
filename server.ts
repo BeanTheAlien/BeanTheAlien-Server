@@ -31,6 +31,8 @@ const transport = nodemailer.createTransport({
         pass: process.env.mail
     }
 });
+const isProd = process.env.NODE_ENV === "production";
+console.log(process.env.NODE_ENV);
 
 function genToken() {
     return crypto.randomBytes(16).toString("hex");
@@ -63,7 +65,7 @@ function getUsername(req: Request) {
     return req.cookies.username;
 }
 function cookies(res: Response, token: string, username: string) {
-    const opts: CookieOptions = { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: "none", secure: true };
+    const opts: CookieOptions = { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: isProd ? "none" : "lax", secure: isProd };
     res.cookie("token", token, opts);
     res.cookie("username", username, opts);
 }
