@@ -119,7 +119,12 @@ app.post("/getpfp", async (req, res) => {
 app.post("/setpfp", async (req, res) => {
     const { url } = req.body;
     const u = getUsername(req);
-    const { error } = await pfps.upsert({ username: u, pfp: url });
+    if(await fdPfps(u)) {
+        const { error } = await pfps.update({ pfp: url }).eq("username", u);
+        if(error) return res.status(500).json({ success: false, message: error.message });
+        return res.json({ success: true });
+    }
+    const { error } = await pfps.insert({ username: u, pfp: url });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
