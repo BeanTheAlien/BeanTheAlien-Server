@@ -7,7 +7,7 @@ import * as jwt from "jsonwebtoken";
 import { config } from "dotenv";
 import * as crypto from "crypto";
 import * as nodemailer from "nodemailer";
-import type { CookieOptions, Request, Response } from "express";
+import type { Request, Response } from "express";
 config();
 
 const app = express();
@@ -59,13 +59,17 @@ function sendEmail(from: string, to: string, subject: string, html: string) {
     transport.sendMail({ from, to, subject, html });
 }
 function decode(req: Request) {
-    return jwt.verify(req.cookies.token, secret) as any;
+    try {
+        return jwt.verify(req.cookies.token, secret) as any;
+    } catch {
+        return null;
+    }
 }
 function getToken(req: Request) {
-    return decode(req).tk;
+    return decode(req)?.tk ?? null;
 }
 function getUsername(req: Request) {
-    return decode(req).unm;
+    return decode(req)?.unm ?? null;
 }
 function cookies(res: Response, token: string) {
     res.cookie("token", token, { maxAge: 3 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: isProd ? "none" : "lax", secure: isProd });
@@ -78,6 +82,7 @@ app.post("/signup", async (req, res) => {
     const tk = sign(genToken(), username);
     const { error } = await users.insert({ username, email, password: hash, promotions });
     if(error) return res.status(500).json({ success: false, message: error.message });
+    cookies(res, tk);
     res.status(201).json({ success: true, message: "User created" });
 });
 app.post("/signin", async (req, res) => {
@@ -90,8 +95,12 @@ app.post("/signin", async (req, res) => {
     res.json({ success: true, message: "Logged in successfully" });
 });
 app.post("/verify", async (req, res) => {
-    const t = getToken(req);
-    res.send({ r: t && verify(t) });
+    try {
+        const d = decode(req);
+        res.send({ r: !!d, unm: d?.unm });
+    } catch {
+        res.send({ r: false });
+    }
 });
 app.post("/verifytk", async (req, res) => {
     res.send({ r: verify(req.body.token) });
