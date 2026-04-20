@@ -164,6 +164,9 @@ app.post("/admin/delete", async (req, res) => {
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
+app.get("/admin/users", async (req, res) => {
+    res.send({ u: users.select() });
+});
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
