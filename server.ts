@@ -124,7 +124,12 @@ app.post("/user", async (req, res) => {
 });
 app.post("/sendemail", async (req, res) => {
     const { from, to, subject, html } = req.body;
-    sendEmail(from, to, subject, html);
+    try {
+        sendEmail(from, to, subject, html);
+        return res.json({ success: true });
+    } catch(e) {
+        res.status(400).json({ success: false, message: (e as Error).message });
+    }
 });
 app.post("/getpfp", async (req, res) => {
     res.send({ pfp: await fdPfps(getUsername(req)) });
@@ -165,7 +170,7 @@ app.post("/admin/delete", async (req, res) => {
     res.json({ success: true });
 });
 app.get("/admin/users", async (req, res) => {
-    res.send({ u: users.select() });
+    res.send({ u: (await users.select()).data });
 });
 
 const port = process.env.PORT || 3001;
