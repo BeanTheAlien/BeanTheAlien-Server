@@ -172,6 +172,12 @@ app.post("/admin/delete", async (req, res) => {
 app.get("/admin/users", async (req, res) => {
     res.send({ u: (await users.select()).data });
 });
+app.get("/meta/:uuid", async (req, res) => {
+    const { uuid } = req.params;
+    const { data, error } = await users.select().filter("uuid", "eq", uuid);
+    if(error) return res.status(404).json({ success: false, message: error.message });
+    res.json({ success: true, message: data[0] });
+});
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
