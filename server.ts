@@ -25,6 +25,7 @@ const upload = multer();
 const client = supabase.createClient(process.env.url as string, process.env.key as string);
 const users = client.from("users");
 const pfps = client.from("pfps");
+const community = client.from("community");
 const secret = "123";
 const transport = nodemailer.createTransport({
     service: "gmail",
@@ -42,17 +43,26 @@ function genToken() {
 function sign(hex: string, unm: string) {
     return jwt.sign({ tk: hex, unm }, secret, { expiresIn: "3d" });
 }
-async function fltr(username: string) {
-    return (await users.select().filter("username", "eq", username)).data;
+async function fltr<T extends supabase.PostgrestQueryBuilder<any, any, any, string, unknown>>(table: T, field: string, value: string) {
+    return (await table.select().filter(field, "eq", value)).data;
+}
+async function fltrUsers(username: string) {
+    return await fltr(users, "username", username);
 }
 async function fltrPfps(username: string) {
-    return (await pfps.select().filter("username", "eq", username)).data;
+    return await fltr(pfps, "username", username);
+}
+async function fltrCom(title: string) {
+    return await fltr(community, "title", title);
 }
 async function fd(username: string) {
-    return (await fltr(username))?.[0];
+    return (await fltrUsers(username))?.[0];
 }
 async function fdPfps(username: string) {
     return (await fltrPfps(username))?.[0];
+}
+async function fdCom(title: string) {
+    return (await fltrCom(title))?.[0];
 }
 function verify(tk: string) {
     return jwt.verify(tk, secret);
@@ -177,6 +187,31 @@ app.get("/meta/:uuid", async (req, res) => {
     const { data, error } = await users.select().filter("uuid", "eq", uuid);
     if(error) return res.status(404).json({ success: false, message: error.message });
     res.json({ success: true, message: data[0] });
+});
+app.post("/com/post", async (req, res) => {
+    const { title, body } = req.body;
+    const { error } = await community.insert({ author: getUsername(req), title, body });
+    if(error) return res.status(400).json({ success: false, message: error.message });
+    res.json({ success: true });
+});
+app.post("/com/getposts", async (req, res) => {
+    const { data, error } = await community.select();
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true, data });
+});
+app.post("/com/pin", async (req, res) => {
+    const { title } = req.body;
+    if(!(await fdCom(title))) return res.status(404).json({ success: false });
+    const { error } = await community.update({ pinned: true }).eq("title", title);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
+});
+app.post("/com/unpin", async (req, res) => {
+    const { title } = req.body;
+    if(!(await fdCom(title))) return res.status(404).json({ success: false });
+    const { error } = await community.update({ pinned: false }).eq("title", title);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
 });
 
 const port = process.env.PORT || 3001;
