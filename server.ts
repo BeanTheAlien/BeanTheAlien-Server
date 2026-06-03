@@ -148,7 +148,7 @@ app.post("/setpfp", upload.single("file"), async (req, res) => {
     const file = req.file;
     if(!file) return res.status(400).json({ success: false, message: "No file provided" });
     const u = getUsername(req);
-    const path = `${u}/${crypto.randomUUID()}.png`;
+    const path = `${u}/${crypto.randomUUID()}.webp`;
     const { error } = await client.storage.from("pfps").upload(path, file.buffer, { contentType: "image/webp", upsert: true });
     if(error) return res.status(500).json({ success: false, message: error.message });
     const { data: dataurl } = client.storage.from("pfps").getPublicUrl(path);
