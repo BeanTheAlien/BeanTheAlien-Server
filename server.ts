@@ -148,7 +148,12 @@ app.post("/setpfp", upload.single("file"), async (req, res) => {
     const file = req.file;
     if(!file) return res.status(400).json({ success: false, message: "No file provided" });
     const u = getUsername(req);
-    const path = `${u}/${crypto.randomUUID()}.webp`;
+    // clean filename to be shortened
+    const semi = file.filename.split(" ").join("");
+    let f = semi;
+    const regex = new RegExp("([a-zA-Z])\\1{3,}");
+    while(regex.test(f)) f = f.replace(regex, "$1");
+    const path = `${u}/${f}.webp`;
     const { error } = await client.storage.from("pfps").upload(path, file.buffer, { contentType: "image/webp", upsert: true });
     if(error) return res.status(500).json({ success: false, message: error.message });
     const { data: dataurl } = client.storage.from("pfps").getPublicUrl(path);
@@ -210,6 +215,17 @@ app.post("/com/unpin", async (req, res) => {
     const { title } = req.body;
     if(!(await fdCom(title))) return res.status(404).json({ success: false });
     const { error } = await community.update({ pinned: false }).eq("title", title);
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
+});
+app.post("/anns/select", async (req, res) => {
+    const { data, error } = await client.from("anns").select();
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true, data });
+});
+app.post("/anns/new", async (req, res) => {
+    const { title, body } = req.body;
+    const { error } = await client.from("anns").insert({ title, body });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
 });
