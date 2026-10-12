@@ -9,11 +9,12 @@ import * as crypto from "crypto";
 import * as nodemailer from "nodemailer";
 import type { Request, Response } from "express";
 import multer from "multer";
+import * as tiny from "shrink-string";
 config();
 
 const app = express();
 app.use(cors({
-    origin: ["https://beanthealien.github.io", "http://127.0.0.1:5500"],
+    origin: ["https://beanthealien.github.io", "http://127.0.0.1:5500", "http://localhost:3000", "http://localhost:3001"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -26,6 +27,8 @@ const client = supabase.createClient(process.env.url as string, process.env.key 
 const users = client.from("users");
 const pfps = client.from("pfps");
 const community = client.from("community");
+const projClient = supabase.createClient(process.env.purl as string, process.env.pkey as string);
+const project = projClient.from("project");
 const secret = "123";
 const transport = nodemailer.createTransport({
     service: "gmail",
@@ -228,6 +231,26 @@ app.post("/anns/new", async (req, res) => {
     const { error } = await client.from("anns").insert({ title, body });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
+});
+app.post("/exist", async (req, res) => {
+    res.json({ r: !!(await fd(req.body.u)) });
+});
+app.post("/proj/peek", async (req, res) => {
+    res.send({ r: (await project.select().filter("user", "eq", req.body.u)).data });
+});
+app.post("/proj/create", async (req, res) => {
+    const { proj } = req.body;
+    const user = getUsername(req);
+    if(!user) return res.status(401).json({ success: false });
+    let c;
+    try {
+        c = await tiny.compress(proj);
+    } catch(e) {
+        return res.status(422).json({ success: false, message: (e as Error).message });
+    }
+    const { error } = await project.insert({ user, cont: c });
+    if(error) return res.status(500).json({ success: false, message: error.message });
+    res.status(201).json({ success: true });
 });
 
 const port = process.env.PORT || 3001;
