@@ -239,7 +239,7 @@ app.post("/proj/peek", async (req, res) => {
     res.send({ r: (await project.select().filter("user", "eq", req.body.u)).data?.map(async p => await tiny.decompress(p)) });
 });
 app.post("/proj/create", async (req, res) => {
-    const { proj } = req.body;
+    const { proj, pgnm } = req.body;
     const user = getUsername(req);
     if(!user) return res.status(401).json({ success: false });
     let c;
@@ -248,7 +248,7 @@ app.post("/proj/create", async (req, res) => {
     } catch(e) {
         return res.status(422).json({ success: false, message: (e as Error).message });
     }
-    const { error } = await project.insert({ user, cont: c });
+    const { error } = await project.insert({ user, cont: c, name: pgnm });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.status(201).json({ success: true });
 });
