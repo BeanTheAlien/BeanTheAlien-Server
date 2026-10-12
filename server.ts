@@ -92,6 +92,9 @@ function cookies(res: Response, token: string) {
 async function admin(req: Request) {
     return (await fd(getUsername(req)))?.role == "admin";
 }
+async function fltrProj(usr: string) {
+    return (await project.select().filter("user", "eq", usr)).data;
+}
 
 app.post("/signup", async (req, res) => {
     const { username, email, password, promotions } = req.body;
@@ -236,7 +239,7 @@ app.post("/exist", async (req, res) => {
     res.json({ r: !!(await fd(req.body.u)) });
 });
 app.post("/proj/peek", async (req, res) => {
-    res.send({ r: (await project.select().filter("user", "eq", req.body.u)).data?.map(async p => await tiny.decompress(p)) });
+    res.send({ r: (await fltrProj(req.body.u))?.map(async p => await tiny.decompress(p)) });
 });
 app.post("/proj/create", async (req, res) => {
     const { proj, pgnm } = req.body;
@@ -251,6 +254,9 @@ app.post("/proj/create", async (req, res) => {
     const { error } = await project.insert({ user, cont: c, name: pgnm });
     if(error) return res.status(500).json({ success: false, message: error.message });
     res.status(201).json({ success: true });
+});
+app.post("/proj/script", async (req, res) => {
+    res.send({ r: await tiny.decompress((await fltrProj(req.body.u))?.[0].cont) });
 });
 
 const port = process.env.PORT || 3001;
