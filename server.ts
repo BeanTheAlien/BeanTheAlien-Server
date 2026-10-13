@@ -148,7 +148,7 @@ app.post("/sendemail", async (req, res) => {
     }
 });
 app.post("/getpfp", async (req, res) => {
-    res.send({ pfp: await fdPfps(getUsername(req)) });
+    res.send({ pfp: (await fdPfps(getUsername(req)))?.pfp });
 });
 app.post("/setpfp", upload.single("file"), async (req, res) => {
     const file = req.file;
